@@ -1,0 +1,19 @@
+﻿{
+  "name": "bulletin",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andku83/nodejs-Bulletin-board.git"
+  },
+  "author": "Andrey Kushnarev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andku83/nodejs-Bulletin-board/issues"
+  },
+  "homepage": "https://github.com/andku83/nodejs-Bulletin-board#readme"
+}
