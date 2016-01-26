@@ -1,7 +1,7 @@
 ﻿{
   "name": "bulletin",
   "version": "0.0.1",
-  "description": "",
+  "description": "- ",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -23,6 +23,10 @@
     "express": "~4.13.1",
     "jade": "~1.11.0",
     "morgan": "~1.6.1",
-    "serve-favicon": "~2.3.0"
+    "serve-favicon": "~2.3.0",
+    "mongodb": "~2.1.4",
+    "mongoose": "~4.3.7",
+    "connect-mongo": "~1.1.0",
+    "express-session": "~1.13.0"
   }
 }
