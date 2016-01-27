@@ -1,15 +1,25 @@
 const mongoose = require('mongoose'),
       config = require('./config');
+var autoIncrement = require('mongoose-auto-increment');
 
-mongoose.connect('mongodb://' +
-    config.connect.host + ':' +
-    config.connect.port + '/' +
-    config.connect.db, function(err){
+var connection = mongoose.connect(config.get('mongoose:uri'), config.get('mongoose:options'),
+    function(err){
         if (err) console.log('Не удалось подключиться к БД: \n', err);
     }
 );
 
-module.exports = mongoose.connection;
+autoIncrement.initialize(connection);
+
+var db = mongoose.connection;
+
+db.on('error', function (err) {
+    console.log('connection error:', err.message);
+});
+db.once('open', function callback () {
+    console.log("Connected to DB!");
+});
+
+module.exports = db;
 
 /*
  module.exports =

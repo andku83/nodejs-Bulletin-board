@@ -4,6 +4,7 @@ var express = require('express'),
     logger = require('morgan'),
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
+    config = require('./config'),
     db = require('./db');
 
 const session = require('express-session');
@@ -21,7 +22,7 @@ app.set('view engine', 'jade');
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(session({
-  secret: 'my-secret-key1',
+  secret: config.get('session:secret'),
   store: new MongoStore({
     mongooseConnection: db
   })

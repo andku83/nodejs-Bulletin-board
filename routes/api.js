@@ -1,65 +1,26 @@
 var express = require('express');
 var router = express.Router();
 var User = require('../models/user');
-var ObjectID = require('mongodb').ObjectID;
+var UserController = require('../controllers/userController');
 
 /*                   USER                      */
 /* Login user */
-router.post('/login', function(req, res, next) {
-    res.send('respond with a resource api login');
-});
+router.post('/login', UserController.login);
 
 /* Register */
-router.post('/register', function(req, res, next) {
-    res.send('respond with a resource api register');
-});
-
-//if (session._token){};
+router.post('/register', UserController.register);
 
 /* Get current user */
-router.get('/me', function(req, res, next) {
-
-    res.json({first: 'respond with a resource api me'});
-});
+router.get('/me', UserController.get_me);
 
 /* Update current user */
-router.put('/me', function(req, res, next) {
-    res.send('respond with a resource api put me');
-});
+router.put('/me', UserController.put_me);
 
 /* Get user by ID */
-router.get('/user/:id', function(req, res, next) {
-    try {
-        var id = new ObjectID(req.params.id);
-    } catch (e) {
-        console.log(e);
-        res.send('no id user');
-        return;
-    }
-    //var id=req.params.id
-    console.log(req.params.id);
-    console.log(id);
-    User.findById(id, function(err, user){
-        if (err){
-            console.log(err);
-            return;
-        }
-        if (!user){
-            next();
-        }
-        else {
-            res.json(user);
-            res.end();
-        }
-    });
-});
+router.get('/user/:id', UserController.get_user);
 
 /* Search users */
-router.get('/user?name=:name&email=:email', function(req, res, next) {
-    res.send('respond with a resource api');
-});
-
-
+router.get('/user?name=:name&email=:email', UserController.search_user);
 
 
 /*                   ITEM                      */

@@ -1,12 +1,10 @@
-module.exports = {
-    server: {
-        'port': 3000
-    },
-    connect: {
-        user: '',
-        password: '',
-        host: 'localhost',
-        port: 27017,
-        db: 'first'
-    }
-};
+var nconf = require('nconf');
+var path = require('path');
+
+nconf.argv()
+    .env()
+    .file({ file: path.join(__dirname, 'config.json') });
+
+
+
+module.exports = nconf;

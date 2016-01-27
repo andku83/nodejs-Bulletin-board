@@ -5,14 +5,12 @@ var app = require('./app'),
 
 
 
-http.createServer(app).listen(config.server.port, function() {
-    console.log('Express server listening on port ' + config.server.port)
-});
-
 /*
-app.listen(config.server.port, function() {
-    console.log('Express server listening on port ' + config.server.port);
+http.createServer(app).listen(config.get.port, function() {
+    console.log('Express server listening on port ' + config.get.port)
 });
-
-console.log(db);
 */
+
+app.listen(config.get('port'), function() {
+    console.log('Express server listening on port ' + config.get('port'));
+});

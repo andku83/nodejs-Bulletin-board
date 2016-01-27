@@ -4,6 +4,7 @@
   "description": "- ",
   "main": "app.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -27,6 +28,10 @@
     "mongodb": "~2.1.4",
     "mongoose": "~4.3.7",
     "connect-mongo": "~1.1.0",
-    "express-session": "~1.13.0"
+    "express-session": "~1.13.0",
+    "mongoose-auto-increment": "~5.0.1",
+    "async": "~1.5.2",
+    "jsonwebtoken": "~5.5.4",
+    "nconf": "~0.8.2"
   }
 }
