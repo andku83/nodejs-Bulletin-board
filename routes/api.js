@@ -1,9 +1,10 @@
 var express = require('express');
 var router = express.Router();
-var User = require('../models/user');
 var UserController = require('../controllers/userController');
+var Auth = require('../middleware/auth');
 
-/*                   USER                      */
+
+    /*                   USER                      */
 /* Login user */
 router.post('/login', UserController.login);
 
@@ -11,16 +12,16 @@ router.post('/login', UserController.login);
 router.post('/register', UserController.register);
 
 /* Get current user */
-router.get('/me', UserController.get_me);
+router.get('/me', Auth, UserController.get_me);
 
 /* Update current user */
-router.put('/me', UserController.put_me);
-
-/* Get user by ID */
-router.get('/user/:id', UserController.get_user);
+router.put('/me', Auth, UserController.put_me);
 
 /* Search users */
-router.get('/user?name=:name&email=:email', UserController.search_user);
+router.get('/user/', UserController.search_user);
+
+/* Get user by ID */
+router.get('/user/:id', Auth, UserController.get_user);
 
 
 /*                   ITEM                      */
@@ -36,31 +37,29 @@ router.get('/item/:id', function(req, res, next) {
 });
 
 /* Update item */
-router.put('/item/:id', function(req, res, next) {
+router.put('/item/:id', Auth, function(req, res, next) {
     res.send('respond with a resource api item update');
 });
 
 /* Delete item */
-router.delete('/item/:id', function(req, res, next) {
+router.delete('/item/:id', Auth, function(req, res, next) {
     res.send('respond with a resource api item delete');
 });
 
 /* Create item */
-router.put('/item/:id', function(req, res, next) {          //  ???????????
+router.put('/item', Auth, function(req, res, next) {          //  ???????????
     res.send('respond with a resource api item create');
 });
 
 
-
-
 /*                  ITEM IMAGE                  */
 /* Upload item image */
-router.post('/item/:id/image', function(req, res, next) {
+router.post('/item/:id/image', Auth, function(req, res, next) {
     res.send('respond with a resource api');
 });
 
 /* Upload item image */
-router.delete('/item/:id/image', function(req, res, next) {
+router.delete('/item/:id/image', Auth, function(req, res, next) {
     res.send('respond with a resource api');
 });
 

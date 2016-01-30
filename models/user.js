@@ -10,10 +10,19 @@ var UserSchema = new Schema({
         unique: true,
         required: true
     },
+    email: {
+        type: String,
+        unique: true,
+        required: true
+    },
     name: {
         type: String,
         unique: true,
         required: true
+    },
+    phone: {
+        type: String,
+        unique: true
     },
     hashedPassword: {
         type: String,
@@ -22,15 +31,6 @@ var UserSchema = new Schema({
     salt:{
         type: String,
         required: true
-    },
-    email: {
-        type: String,
-        unique: true,
-        required: true
-    },
-    phone: {
-        type: String,
-        unique: true
     },
     created: {
         type: Date,
@@ -62,4 +62,13 @@ UserSchema.methods.checkPassword = function(password) {
     return this.encryptPassword(password) === this.hashedPassword;
 };
 
-module.exports = mongoose.model('User', UserSchema);
+UserSchema.methods.getInfo = function(){
+    return {
+        "id":  this.id,
+        "phone":  this.phone,
+        "name":  this.name,
+        "email":  this.email
+    };
+};
+
+module.exports = User = mongoose.model('User', UserSchema);

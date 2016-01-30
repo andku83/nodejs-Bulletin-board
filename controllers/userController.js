@@ -1,15 +1,12 @@
-var mongoose = require('mongoose'),
-    User = require('../models/user'),
+var User = require('../models/user'),
     config = require('../config'),
-    ObjectID = require('mongodb').ObjectID,
     async = require('async'),
+    url = require('url'),
     jwt = require('jsonwebtoken'); // used to create, sign, and verify tokens;
 
 UserController = {};
 
-var superSecret = config.get('session:secret'); // secret variable
-
-UserController.login = function(req, res) {
+UserController.login = function(req, res, next) {
     var email = req.body.email;
     var password = req.body.password;
 
@@ -27,186 +24,254 @@ UserController.login = function(req, res) {
                 }
             } else {
                 res.status(422, "Unprocessable Entity");
-                res.json({"field":"password", "message":"Wrong email or password"});
+                res.json({"field": "password", "message": "Wrong email or password"});
             }
         }
     ], function(err, user) {
-        if (err) return next(err);
-
-        var token = jwt.sign(user, superSecret, {
-            expiresInMinutes: 1440 // expires in 24 hours
-        });
-
-        // return the information including token as JSON
-        res.json({
-            success: true,
-            message: 'Enjoy your token!',
-            token: token
-        });
+        if (err) res.json(500, err);
+        else {
+            var token = jwt.sign({"id": user.id}, config.get('session:secret'), {
+                expiresIn: "1d" // expires in 24 hours
+            });
+            // return the information including token as JSON
+            res.json({token: token});
+        }
     })
 };
 
 UserController.register = function(req, res, next){
-    var is_exist = function ($name, value){
-        User.find({$name: req.body.$name}, function(err, user){
-            if (err) next(err);
-            if (user.$name == value) return true;
-            else return false;
-        })
-    };
-    var duplicate = [];
-    if ("name", req.body.name) {
-        duplicate.push({"field": "current_name", "message": "Wrong name"});
-    }
-    if (!req.body.email || User.find({"email": req.body.email})) {
-        duplicate.push({"field": "current_email","message":"Wrong email"});
-    }
-    if (!req.body.phone || User.find({"phone": req.body.phone})) {
-        duplicate.push({"field": "current_phone","message":"Wrong phone"});
-    }
-    console.log(duplicate);
-    if (duplicate.length > 0){
-        console.log('???');
-        //res.send(duplicate);
-        res.json(
-            );
-        return
-    }
+    req.checkBody("email", "Enter a valid email address.").isEmail();
+    if (req.body.phone)
+        req.checkBody("phone", "Enter a valid phone (Example +380XXXXXXXXX).").isPhoneUA();
+    req.checkBody("name", "Enter a valid name (length 2-20).").len({ min: 2, max: 20 });
+    req.checkBody("password", "Enter a valid valid password (length 6-20).")
+        .isLength({ min: 6, max: 20 });
 
-    var user = new User({"name" : req.body.name,
-        "password" : req.body.password,
-        "email" : req.body.email,
-        "phone" : req.body.phone
-    });
+    var errors = req.validationErrors();
+    if (errors) {
+        res.status(422, "Unprocessable Entity");
+        res.json(errors);
+    } else {
+        var user = new User({
+            "email": req.body.email,
+            "name": req.body.name,
+            "password": req.body.password,
+            "phone": req.body.phone
+        });
 
-    user.save(function (err) {
-        if (err) {
-            console.log(err);
-            return;
-        }
-        //console.log(user);
-        res.json({token: "3f5uh28"});
-        return
-        res.end()
-    });
+        /*
+         var warnings = [];
+         async.parallel([
+         function(user) {
+         if (user.name) {
+         User.findOne({"name": user.name}, function (err, usr) {
+         if (err) {
+         console.log(err);
+         }
+         if (usr !== null) warnings.push({"field": "current_name", "message": "Name is used"});
+         });
+         } else {
+         warnings.push({"field": "current_name", "message": "Name is required"});
+         }
+         },
+         function(user) {
+         if (user.email) {
+         User.findOne({"email": user.email}, function (err, usr) {
+         if (err) {
+         console.log(err);
+         }
+         if (usr) warnings.push({"field":"current_email","message":"Email is used"})
+         });
+         } else {
+         warnings.push({"field":"current_name","message":"Email is required"});
+         }
+         },
+         function(user) {
+         if (user.phone) {
+         User.findOne({"phone": user.phone}, function (err, usr) {
+         if (err) {
+         console.log(err);
+         }
+         if (usr) warnings.push({"field":"current_phone","message":"Phone is used"})
+         });
+         } else {
+         warnings.push({"field":"current_name","message":"Phone is required"});
+         }
+         },
+         function(user) {
+         if (!user.password) {
+         warnings.push({"field": "current_password", "message": "Password is required"});
+         }
+         }
+         ],
+         function(){
+         console.log(warnings);
+         });
+         */
+
+        user.save(function (err) {
+            if (err) {
+                console.log(err);
+                res.json(500, err);
+            } else {
+                var token = jwt.sign({"id": user.id}, config.get('session:secret'), {
+                    expiresIn: "1d" // expires in 24 hours
+                });
+                // return the information including token as JSON
+                res.json({
+                    token: token
+                });
+            }
+        });
+    }
 };
 
 UserController.get_me = function(req, res, next){
-    res.end('hi!');
+    var id = req.decoded.id;
+
+    User.findOne({"id": id}, function (err, user) {
+        if (err) {
+            console.log(err);
+            res.json(500, err);
+        } else if (user) {
+            res.json(user.getInfo());
+        } else {
+            res.status(404, "Not found");
+            res.end();
+        }
+    });
 
 };
 
-UserController.put_me = function(req, res, next){
-    res.end('hi!');
+UserController.put_me = function(req, res, next) {
+    if (req.body.email)
+        req.checkBody("email", "Enter a valid email address.").isEmail();
+    if (req.body.phone)
+        req.checkBody("phone", "Enter a valid phone (Example +380XXXXXXXXX).").isPhoneUA();
+    if (req.body.name)
+        req.checkBody("name", "Enter a valid name (length 2-20).").isLength({min: 2, max: 20});
+    if (req.body.current_password) {
+        req.checkBody("current_password", "Enter a correct current password (length 6-20).").len({min: 6, max: 20});
+        if (req.body.new_password)
+            req.checkBody("new_password", "Enter a valid new password (length 6-20).")
+                .isLength({min: 6, max: 20});
+    }
 
+    var errors = req.validationErrors() ? req.validationErrors().slice() : [];
+
+    if (req.body.current_password) {
+        if (!req.body.new_password) {
+            errors.push({
+                "field": "new_password",
+                "message": "Required if current password not empty."
+            })
+        }
+    }
+
+    if (errors.length > 0) {
+        res.status(422, "Unprocessable Entity");
+        res.json(errors);
+    } else {
+        var id = req.decoded.id;
+
+        User.findOne({"id": id}, function (err, user) {
+            if (err) {
+                console.log(err);
+                res.json(500, err);
+            } else if (!user) {
+                res.status(404, "Not found");
+                res.end();
+            } else {
+                if (req.body.email)
+                    user.email = req.body.email;
+                if (req.body.phone)
+                    user.phone = req.body.phone;
+                if (req.body.name)
+                    user.name = req.body.name;
+                if (req.body.current_password) {
+                    if (user.checkPassword(req.body.current_password)) {
+                        user.password = req.body.new_password;
+                    } else {
+                        res.status(422, "Unprocessable Entity");
+                        res.json({"field": "password", "message": "Wrong current password"});
+                        return;
+                    }
+                }
+                user.save(function (err) {
+                    if (err) {
+                        console.log(err);
+                        res.json(500, err);
+                    } else {
+                        res.json(user.getInfo());
+                    }
+                })
+            }
+        })
+    }
 };
 
 UserController.get_user = function(req, res, next) {
-// это ID, который мы отправляем через URL
     var id = req.params.id;
-    console.log(typeof (id))
-// находим элемент списка задач с соответствующим ID
-    User.find({"id": id}, function (err, user) {
-        if (err !== null) {
-            res.json(err);
+    User.findOne({"id": id}, function (err, user) {
+        if (err) {
+            console.log(err);
+            res.json(500, err);
         } else {
-            if (user.length > 0) {
-                res.json(user/*{
-                    "id": user._id,
-                    "phone": user.phone,
-                    "name": user.name,
-                    "email": user.email
-                }*/);
+            if (user) {
+                res.json(user.getInfo());
             } else {
-                res.send("Не найдено");
+                res.status(404, "Not found");
+                res.end();
             }
         }
     });
-    //    try {
-//        var id = new ObjectID(req.params.id);
-//    } catch (e) {
-//        console.log(e);
-//        res.send('no id user');
-//        return;
-//    }
-//    //var id=req.params.id
-//    console.log(req.params.id);
-//    console.log(id);
-//    User.findById(id, function(err, user){
-//        if (err){
-//            console.log(err);
-//            return;
-//        }
-//        if (!user){
-//            next();
-//        }
-//        else {
-//            res.json(user);
-//            res.end();
-//        }
-//    });
 };
 
 UserController.search_user = function(req, res, next){
+    var urlParsed = url.parse(req.url, true);
 
+    async.parallel([
+        function(callback) {
+            if (urlParsed.query.name) {
+                var name = urlParsed.query.name;
+                User.findOne({"name": name}, function (err, name) {
+                    callback(err, name);
+                });
+            } else {
+                callback (null);
+            }
+        },
+        function(callback) {
+            if (urlParsed.query.email) {
+                var email = urlParsed.query.email;
+                User.findOne({"email": email}, function (err, email) {
+                    callback(err, email);
+                });
+            } else {
+                callback (null);
+            }
+        }
+    ], function(err, user) {
+        if (err)
+            res.json(500, err);
+        else {
+            if (user[0]) {
+                if (user[1])
+                    if (user[0].toString() == user[1].toString())
+                        res.json([user[0].getInfo()]);
+                    else
+                        res.json([user[0].getInfo(), user[1].getInfo()]);
+                else
+                    res.json([user[0].getInfo()]);
+            }
+            else if (user[1])
+                res.json([user[1].getInfo()]);
+            else {
+                res.status(404, "User not found");
+                res.end();
+            }
+        }
+    })
 };
 
-module.exports = ('UserController', UserController);
-
-
-// /* Login user */
-//router.post('/login', function(req, res, next) {
-//    res.send('respond with a resource api login');
-//});
-//
-///* Register */
-//router.post('/register', function(req, res, next) {
-//    res.send('respond with a resource api register');
-//});
-//
-////if (session._token){};
-//
-///* Get current user */
-//router.get('/me', function(req, res, next) {
-//
-//    res.json({first: 'respond with a resource api me'});
-//});
-//
-///* Update current user */
-//router.put('/me', function(req, res, next) {
-//    res.send('respond with a resource api put me');
-//});
-//
-///* Get user by ID */
-//router.get('/user/:id', function(req, res, next) {
-//    try {
-//        var id = new ObjectID(req.params.id);
-//    } catch (e) {
-//        console.log(e);
-//        res.send('no id user');
-//        return;
-//    }
-//    //var id=req.params.id
-//    console.log(req.params.id);
-//    console.log(id);
-//    User.findById(id, function(err, user){
-//        if (err){
-//            console.log(err);
-//            return;
-//        }
-//        if (!user){
-//            next();
-//        }
-//        else {
-//            res.json(user);
-//            res.end();
-//        }
-//    });
-//});
-//
-///* Search users */
-//router.get('/user?name=:name&email=:email', function(req, res, next) {
-//    res.send('respond with a resource api');
-//});
-//
-//
+module.exports = UserController;

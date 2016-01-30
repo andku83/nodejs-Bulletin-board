@@ -5,7 +5,8 @@ var express = require('express'),
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
     config = require('./config'),
-    db = require('./db');
+    db = require('./db'),
+    validator = require('express-validator');
 
 const session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
@@ -30,10 +31,33 @@ app.use(session({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(validator({
+  errorFormatter: function(param, msg) {
+    var namespace = param.split('.')
+        , root    = namespace.shift()
+        , formParam = root;
+
+    while(namespace.length) {
+      formParam += '[' + namespace.shift() + ']';
+    }
+    return {
+      field  : formParam,
+      message: msg
+    };
+  },
+  customValidators: {
+    isPhoneUA: function(value) {              //'ua-UA':
+      return /^(\+380)[0-9]{9}$/.test(value);
+    }
+  }
+
+}));
+
+//app.use(auth);
 
 app.use('/', routes);
 
+app.use(express.static(path.join(__dirname, 'public')));
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
