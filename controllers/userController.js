@@ -40,11 +40,11 @@ UserController.login = function(req, res, next) {
 };
 
 UserController.register = function(req, res, next){
-    req.checkBody("email", "Enter a valid email address.").isEmail();
+    req.checkBody("email", "Enter a valid email address").isEmail();
     if (req.body.phone)
-        req.checkBody("phone", "Enter a valid phone (Example +380XXXXXXXXX).").isPhoneUA();
-    req.checkBody("name", "Enter a valid name (length 2-20).").len({ min: 2, max: 20 });
-    req.checkBody("password", "Enter a valid valid password (length 6-20).")
+        req.checkBody("phone", "Enter a valid phone (Example +380XXXXXXXXX)").isPhoneUA();
+    req.checkBody("name", "Enter a valid name (length 2-20)").len({ min: 2, max: 20 });
+    req.checkBody("password", "Enter a valid valid password (length 6-20)")
         .isLength({ min: 6, max: 20 });
 
     var errors = req.validationErrors();
@@ -58,56 +58,6 @@ UserController.register = function(req, res, next){
             "password": req.body.password,
             "phone": req.body.phone
         });
-
-        /*
-         var warnings = [];
-         async.parallel([
-         function(user) {
-         if (user.name) {
-         User.findOne({"name": user.name}, function (err, usr) {
-         if (err) {
-         console.log(err);
-         }
-         if (usr !== null) warnings.push({"field": "current_name", "message": "Name is used"});
-         });
-         } else {
-         warnings.push({"field": "current_name", "message": "Name is required"});
-         }
-         },
-         function(user) {
-         if (user.email) {
-         User.findOne({"email": user.email}, function (err, usr) {
-         if (err) {
-         console.log(err);
-         }
-         if (usr) warnings.push({"field":"current_email","message":"Email is used"})
-         });
-         } else {
-         warnings.push({"field":"current_name","message":"Email is required"});
-         }
-         },
-         function(user) {
-         if (user.phone) {
-         User.findOne({"phone": user.phone}, function (err, usr) {
-         if (err) {
-         console.log(err);
-         }
-         if (usr) warnings.push({"field":"current_phone","message":"Phone is used"})
-         });
-         } else {
-         warnings.push({"field":"current_name","message":"Phone is required"});
-         }
-         },
-         function(user) {
-         if (!user.password) {
-         warnings.push({"field": "current_password", "message": "Password is required"});
-         }
-         }
-         ],
-         function(){
-         console.log(warnings);
-         });
-         */
 
         user.save(function (err) {
             if (err) {
@@ -145,20 +95,19 @@ UserController.get_me = function(req, res, next){
 
 UserController.put_me = function(req, res, next) {
     if (req.body.email)
-        req.checkBody("email", "Enter a valid email address.").isEmail();
+        req.checkBody("email", "Enter a valid email address").isEmail();
     if (req.body.phone)
-        req.checkBody("phone", "Enter a valid phone (Example +380XXXXXXXXX).").isPhoneUA();
+        req.checkBody("phone", "Enter a valid phone (Example +380XXXXXXXXX)").isPhoneUA();
     if (req.body.name)
-        req.checkBody("name", "Enter a valid name (length 2-20).").isLength({min: 2, max: 20});
+        req.checkBody("name", "Enter a valid name (length 2-20)").isLength({min: 2, max: 20});
     if (req.body.current_password) {
-        req.checkBody("current_password", "Enter a correct current password (length 6-20).").len({min: 6, max: 20});
+        req.checkBody("current_password", "Enter a correct current password (length 6-20)").len({min: 6, max: 20});
         if (req.body.new_password)
-            req.checkBody("new_password", "Enter a valid new password (length 6-20).")
+            req.checkBody("new_password", "Enter a valid new password (length 6-20)")
                 .isLength({min: 6, max: 20});
     }
 
     var errors = req.validationErrors() ? req.validationErrors().slice() : [];
-
     if (req.body.current_password) {
         if (!req.body.new_password) {
             errors.push({
@@ -169,6 +118,7 @@ UserController.put_me = function(req, res, next) {
     }
 
     if (errors.length > 0) {
+        console.log(errors);
         res.status(422, "Unprocessable Entity");
         res.json(errors);
     } else {
@@ -184,7 +134,7 @@ UserController.put_me = function(req, res, next) {
             } else {
                 if (req.body.email)
                     user.email = req.body.email;
-                if (req.body.phone)
+                if (typeof req.body.phone == "string")
                     user.phone = req.body.phone;
                 if (req.body.name)
                     user.name = req.body.name;
@@ -216,13 +166,11 @@ UserController.get_user = function(req, res, next) {
         if (err) {
             console.log(err);
             res.json(500, err);
+        } else if (user) {
+            res.json(user.getInfo());
         } else {
-            if (user) {
-                res.json(user.getInfo());
-            } else {
-                res.status(404, "Not found");
-                res.end();
-            }
+            res.status(404, "Not found");
+            res.end();
         }
     });
 };

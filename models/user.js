@@ -6,9 +6,7 @@ var Schema = mongoose.Schema;
 
 var UserSchema = new Schema({
     id: {
-        type: Number,
-        unique: true,
-        required: true
+        type: Number
     },
     email: {
         type: String,
@@ -22,7 +20,6 @@ var UserSchema = new Schema({
     },
     phone: {
         type: String,
-        unique: true
     },
     hashedPassword: {
         type: String,
@@ -32,9 +29,9 @@ var UserSchema = new Schema({
         type: String,
         required: true
     },
-    created: {
+    created_at: {
         type: Date,
-        default: Date.now       //()
+        default: Date.now
     }
 });
 
@@ -43,8 +40,6 @@ UserSchema.plugin(autoIncrement.plugin, {
     field: 'id',
     startAt: 1
 });
-
-//var User = connection.model('User', UserSchema);
 
 UserSchema.methods.encryptPassword = function(password){
     return crypto.createHmac('sha1', this.salt).update(password).digest('hex');

@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var UserController = require('../controllers/userController');
+var ItemController = require('../controllers/itemController');
 var Auth = require('../middleware/auth');
 
 
@@ -18,7 +19,7 @@ router.get('/me', Auth, UserController.get_me);
 router.put('/me', Auth, UserController.put_me);
 
 /* Search users */
-router.get('/user/', UserController.search_user);
+router.get('/user', UserController.search_user);
 
 /* Get user by ID */
 router.get('/user/:id', Auth, UserController.get_user);
@@ -26,42 +27,27 @@ router.get('/user/:id', Auth, UserController.get_user);
 
 /*                   ITEM                      */
 /* Search items */
-router.get('/item?title=notebook&user_id=1&order_by=created_at&order_type=desc',
-    function(req, res, next) {
-        res.send('respond with a resource api item search');
-    });
+router.get('/item', ItemController.search_item);
 
 /* Get item by ID */
-router.get('/item/:id', function(req, res, next) {
-    res.send('respond with a resource api item');
-});
-
-/* Update item */
-router.put('/item/:id', Auth, function(req, res, next) {
-    res.send('respond with a resource api item update');
-});
-
-/* Delete item */
-router.delete('/item/:id', Auth, function(req, res, next) {
-    res.send('respond with a resource api item delete');
-});
+router.get('/item/:id', ItemController.get_item);
 
 /* Create item */
-router.put('/item', Auth, function(req, res, next) {          //  ???????????
-    res.send('respond with a resource api item create');
-});
+router.post('/item', Auth, ItemController.create_item);
+
+/* Update item */
+router.put('/item/:id', Auth, ItemController.put_item);
+
+/* Delete item */
+router.delete('/item/:id', Auth, ItemController.delete);
 
 
 /*                  ITEM IMAGE                  */
 /* Upload item image */
-router.post('/item/:id/image', Auth, function(req, res, next) {
-    res.send('respond with a resource api');
-});
+router.all('/item/:id/image', Auth, ItemController.image_post);
 
-/* Upload item image */
-router.delete('/item/:id/image', Auth, function(req, res, next) {
-    res.send('respond with a resource api');
-});
+/* delete item image */
+router.all('/item/:id/image', Auth, ItemController.image_del);
 
 
 module.exports = router;
