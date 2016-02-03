@@ -207,7 +207,7 @@ ItemController.delete = function(req, res, next) {
         }
     });
 };
-
+//тут я подумаю с твоими коментами, если будет возможность глянь как можно из одной модели напрямую получить данные из другой модели (вроде как связь поставил) - особенно это волнует в переборе всех найденных элементов в search_item - https://github.com/andku83/nodejs-Bulletin-board/blob/master/controllers/itemController.js#L75
 ItemController.image_post = function(req, res, next) {
     var user_id = req.decoded.id;
     var item_id = req.params.id;
@@ -228,56 +228,80 @@ ItemController.image_post = function(req, res, next) {
 
                 var errors = [];
 
-
-                form.on('file', function(name, file) {
-                    if(file.size > form.maxFieldsSize) {
+                form.on('fileBegin', function chek(name, file) {
+                    if (file.size > form.maxFieldsSize) {
                         errors.push({"field": "image",
-                            "message":"The file " + file.name + " is too big. " +
-                            "Limit is " + (form.maxFieldsSize / 1024 / 1024).toFixed(2) + " Mb."});
+                            "message":"The file " + file.name + " is too big. Limit is "
+                            + (form.maxFieldsSize / 1024 / 1024).toFixed(2) + " Mb."});
                     }
 
-                    if(supportMimeTypes.indexOf(file.type) == -1) {
+                    if (supportMimeTypes.indexOf(file.type) == -1) {
                         errors.push({"field": "image",
                             "message":"Unsupported mimetype " + file.type});
                     }
+                    form.removeListener('fileBegin', chek);
 
-                    if(errors.length > 0) {
-                        res.status(422, "Unprocessable Entity");
-                        res.json(errors);
-                        return
-                    } else {
-                        //file.name = item.user_id + "_" + Date.now() + "_" + file.name;
-                        console.log(name)
+                });
+
+                form.on('progress', function chekFileSize(bytesReceived, bytesExpected) {
+                    if (bytesReceived > form.maxFieldsSize) {
+                        errors.push({"field": "image",
+                            "message":"The file " + form.openedFiles[0].name + " is too big. Limit is "
+                            + (form.maxFieldsSize / 1024 / 1024).toFixed(2) + " Mb."});
+
+                        req.socket.end();
+                        console.log('### ERROR: FILE TOO LARGE');
+                        form.removeListener('progress', chekFileSize);
                     }
-
-                    console.log(file.type);
                 });
 
                 form.on('aborted', function() {
                     errors.push({"field": "image",
                         "message":"Aborted upload."});
+/*
                     res.status(422, "Unprocessable Entity");
                     res.json(errors);
+*/
                 });
 
                 form.on('end', function(name, file) {
                 });
 
                 form.parse(req, function(err, fields, files) {
-                    console.log(errors)
                     if (err) {
                         console.log(err);
-                        res.json(500, err);
+                        //res.json(500, err);
+                    }
+                    if (form.openedFiles == 0){
+                        console.log(form.openedFiles);
+                        errors.push({"field": "image",
+                            "message":"The file is required."});
+                    }
+                    if (errors.length > 0) {
+                        console.log(errors);
+                        res.status(422, "Unprocessable Entity");
+                        res.json(errors);
+                        if (form.openedFiles != 0) {
+                            fs.unlinkSync(form.openedFiles[0].path);
+                            console.log(1)
+                        }
                     } else {
-                        User.findOne({"id": item.user_id}, function (err, user) {
+                        //console.log(req);
+                            User.findOne({"id": item.user_id}, function (err, user) {
                             if (err) {
                                 console.log(err);
                                 res.json(500, err);
                             } else if (user) {
-                                var urlParsed = url.parse('', true);
+                                var new_name = user.id + "_" + Date.now() + "_" + files.file.name;
 
-                                //console.log(files.file)
-                                item.image = form.uploadDir + files.path;
+                                fs.rename(files.file.path, form.uploadDir + new_name,
+                                    function (err) { console.log(err); }
+                                );
+                                if (item.image != "")
+                                    fs.unlink(item.image.replace("http://"+req.headers.host, "./public"),
+                                        function (err) { console.log(err); });
+
+                                item.image = "http://" + req.headers.host + form.uploadDir.replace(/\.\/public/i, "") + new_name;
                                 item.save(function (err) {
                                     if (err) {
                                         console.log(err);
@@ -290,7 +314,7 @@ ItemController.image_post = function(req, res, next) {
                                 res.status(403, "Forbidden");
                                 res.end();
                             }
-                        });
+                        })
                     }
                 });
 
