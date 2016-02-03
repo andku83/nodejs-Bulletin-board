@@ -3,9 +3,7 @@ var Item = require('../models/item'),
     async = require('async'),
     url = require('url'),
     fs = require("fs"),
-    request = require('request'),
-    multiparty = require('multiparty');
-var formidable = require('formidable');
+    formidable = require('formidable');
 
 
 ItemController = {};
@@ -207,7 +205,7 @@ ItemController.delete = function(req, res, next) {
         }
     });
 };
-//тут я подумаю с твоими коментами, если будет возможность глянь как можно из одной модели напрямую получить данные из другой модели (вроде как связь поставил) - особенно это волнует в переборе всех найденных элементов в search_item - https://github.com/andku83/nodejs-Bulletin-board/blob/master/controllers/itemController.js#L75
+
 ItemController.image_post = function(req, res, next) {
     var user_id = req.decoded.id;
     var item_id = req.params.id;
@@ -229,39 +227,38 @@ ItemController.image_post = function(req, res, next) {
                 var errors = [];
 
                 form.on('fileBegin', function chek(name, file) {
-                    if (file.size > form.maxFieldsSize) {
-                        errors.push({"field": "image",
+                    if (name != "file"){
+                        form.emit('error', new Error('File upload canceled by the server.'));
+                    }
+                    if (form.bytesExpected > form.maxFieldsSize) {
+                        errors.push({"field": "file",
                             "message":"The file " + file.name + " is too big. Limit is "
                             + (form.maxFieldsSize / 1024 / 1024).toFixed(2) + " Mb."});
                     }
 
                     if (supportMimeTypes.indexOf(file.type) == -1) {
-                        errors.push({"field": "image",
+                        errors.push({"field": "file",
                             "message":"Unsupported mimetype " + file.type});
                     }
                     form.removeListener('fileBegin', chek);
-
                 });
 
+/*
                 form.on('progress', function chekFileSize(bytesReceived, bytesExpected) {
                     if (bytesReceived > form.maxFieldsSize) {
                         errors.push({"field": "image",
                             "message":"The file " + form.openedFiles[0].name + " is too big. Limit is "
                             + (form.maxFieldsSize / 1024 / 1024).toFixed(2) + " Mb."});
-
-                        req.socket.end();
                         console.log('### ERROR: FILE TOO LARGE');
                         form.removeListener('progress', chekFileSize);
+                        form.emit('error', new Error('File upload canceled by the server.'));
                     }
                 });
+*/
 
                 form.on('aborted', function() {
-                    errors.push({"field": "image",
+                    errors.push({"field": "file",
                         "message":"Aborted upload."});
-/*
-                    res.status(422, "Unprocessable Entity");
-                    res.json(errors);
-*/
                 });
 
                 form.on('end', function(name, file) {
@@ -270,21 +267,19 @@ ItemController.image_post = function(req, res, next) {
                 form.parse(req, function(err, fields, files) {
                     if (err) {
                         console.log(err);
-                        //res.json(500, err);
                     }
                     if (form.openedFiles == 0){
-                        console.log(form.openedFiles);
-                        errors.push({"field": "image",
+                        errors.push({"field": "file",
                             "message":"The file is required."});
                     }
                     if (errors.length > 0) {
-                        console.log(errors);
+                        if (form.openedFiles != 0) {
+                            fs.unlink(form.openedFiles[0].path,
+                                function (err) { console.log(err); });
+                        }
                         res.status(422, "Unprocessable Entity");
                         res.json(errors);
-                        if (form.openedFiles != 0) {
-                            fs.unlinkSync(form.openedFiles[0].path);
-                            console.log(1)
-                        }
+
                     } else {
                             User.findOne({"id": item.user_id}, function (err, user) {
                             if (err) {
@@ -294,11 +289,16 @@ ItemController.image_post = function(req, res, next) {
                                 var new_name = user.id + "_" + Date.now() + "_" + files.file.name;
 
                                 fs.rename(files.file.path, form.uploadDir + new_name,
-                                    function (err) { console.log(err); }
+                                    function (err) {
+                                        if (err) console.log(err);
+                                    }
                                 );
                                 if (item.image != "")
                                     fs.unlink(item.image.replace("http://"+req.headers.host, "./public"),
-                                        function (err) { console.log(err); });
+                                        function (err) {
+                                            if (err) console.log(err);
+                                        }
+                                    );
 
                                 item.image = "http://" + req.headers.host + form.uploadDir.replace(/\.\/public/i, "") + new_name;
                                 item.save(function (err) {
@@ -316,83 +316,6 @@ ItemController.image_post = function(req, res, next) {
                         })
                     }
                 });
-/*
-                // create a form to begin parsing
-                var form = new multiparty.Form();
-                var uploadFile = {uploadPath: '', type: '', size: 0};
-                var maxSize = 2 * 1024 * 1024; //2MB
-                var supportMimeTypes = ['image/jpg', 'image/jpeg', 'image/png', "image/gif"];
-                var errors = [];
-
-                form.on('error', function(err){
-                    if(fs.existsSync(uploadFile.path)) {
-                        fs.unlinkSync(uploadFile.path);
-                        console.log('error');
-                    }
-                });
-
-                form.on('close', function() {
-                    if(errors.length == 0) {
-                        User.findOne({"id": item.user_id}, function (err, user) {
-                            if (err) {
-                                console.log(err);
-                                res.json(500, err);
-                            } else if (user) {
-                                var urlParsed = url.parse('', true);
-
-                                console.log(request)
-                                item.image = uploadFile.path;
-                                item.save(function (err) {
-                                    if (err) {
-                                        console.log(err);
-                                        res.json(500, err);
-                                    } else {
-                                        res.json(item.getInfo(user.getInfo()));
-                                    }
-                                })
-                            } else {
-                                res.status(403, "Forbidden");
-                                res.end();
-                            }
-                        });
-                        //res.json({status: 'ok', text: 'Success'});
-                    }
-                    else {
-                        if(fs.existsSync(uploadFile.path)) {
-                            fs.unlinkSync(uploadFile.path);
-                        }
-                        res.send({status: 'bad', errors: errors});
-                    }
-                });
-
-                // listen on part event for image file
-                form.on('part', function(part) {
-                    uploadFile.size = part.byteCount;
-                    uploadFile.type = part.headers['content-type'];
-                    uploadFile.path = 'public/images/users_uploads/' +
-                        item.user_id + "_" + Date.now() + "_" + part.filename;
-
-                    if(uploadFile.size > maxSize) {
-                        errors.push('File size is ' + (uploadFile.size / 1024 / 1024).toFixed(2)
-                            + ' Mb. Limit is ' + (maxSize / 1024 / 1024).toFixed(2) + ' Mb.');
-                    }
-
-                    if(supportMimeTypes.indexOf(uploadFile.type) == -1) {
-                        errors.push('Unsupported mimetype ' + uploadFile.type);
-                    }
-
-                    if(errors.length == 0) {
-                        var out = fs.createWriteStream(uploadFile.path);
-                        part.pipe(out);
-                    }
-                    else {
-                        part.resume();
-                    }
-                });
-                // parse the form
-                form.parse(req);
-
-*/
             } else {
                 res.status(403, "Forbidden");
                 res.end();
@@ -403,7 +326,7 @@ ItemController.image_post = function(req, res, next) {
         }
     });
 
-}
+};
 
 ItemController.image_del = function(req, res, next) {
     var currentuser_id = req.decoded.id;
@@ -438,6 +361,6 @@ ItemController.image_del = function(req, res, next) {
         }
     });
 
-}
+};
 
 module.exports = ItemController;
