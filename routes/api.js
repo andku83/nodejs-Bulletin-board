@@ -44,10 +44,10 @@ router.delete('/item/:id', Auth, ItemController.delete);
 
 /*                  ITEM IMAGE                  */
 /* Upload item image */
-router.all('/item/:id/image', Auth, ItemController.image_post);
+router.post('/item/:id/image', Auth, ItemController.image_post);
 
 /* delete item image */
-router.all('/item/:id/image', Auth, ItemController.image_del);
+router.delete('/item/:id/image', Auth, ItemController.image_del);
 
 
 module.exports = router;

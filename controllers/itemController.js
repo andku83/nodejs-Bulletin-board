@@ -286,7 +286,6 @@ ItemController.image_post = function(req, res, next) {
                             console.log(1)
                         }
                     } else {
-                        //console.log(req);
                             User.findOne({"id": item.user_id}, function (err, user) {
                             if (err) {
                                 console.log(err);
@@ -317,7 +316,6 @@ ItemController.image_post = function(req, res, next) {
                         })
                     }
                 });
-
 /*
                 // create a form to begin parsing
                 var form = new multiparty.Form();
@@ -417,8 +415,19 @@ ItemController.image_del = function(req, res, next) {
             res.json(500, err);
         } else if (item) {
             if (item.user_id == currentuser_id){
-
-
+                if (item.image != "")
+                    fs.unlink(item.image.replace("http://"+req.headers.host, "./public"),
+                        function (err) { console.log(err); });
+                item.image = "";
+                item.save(function (err) {
+                    if (err) {
+                        console.log(err);
+                        res.json(500, err);
+                    } else {
+                        //res.status(200);
+                        res.end();
+                    }
+                })
             } else {
                 res.status(403, "Forbidden");
                 res.end();
