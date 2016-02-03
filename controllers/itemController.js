@@ -8,7 +8,7 @@ var Item = require('../models/item'),
 
 ItemController = {};
 
-ItemController.create_item = function(req, res, next){                         // 404, "Not found"
+ItemController.create_item = function(req, res, next){
 
     req.checkBody("title", "Enter a valid title (length 4-50)").isLength({ min: 4, max: 50 });
     req.checkBody("price", "Enter a valid price (Example 5500.00)")
