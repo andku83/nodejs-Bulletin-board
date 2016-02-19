@@ -1,9 +1,7 @@
 var express = require('express'),
     router = express.Router(),
 
-    api = require('./api'),
-
-    users = require('./users');
+    api = require('./api');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -11,7 +9,5 @@ router.get('/', function(req, res, next) {
 });
 
 router.use('/api', api);
-
-router.use('/users', users);
 
 module.exports = router;
